@@ -1,9 +1,7 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import time
@@ -20,34 +18,50 @@ class GoogleSearchScraper:
     def initialize_browser(self):
         """Initialize Chrome browser with stealth configurations"""
         options = Options()
-        options.add_argument("--headless")
+        # options.add_argument("--headless")  # Disabled for Windows compatibility
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--disable-web-security")
+        options.add_argument("--allow-running-insecure-content")
         options.add_experimental_option("excludeSwitches", ["enable-automation"])
         options.add_experimental_option('useAutomationExtension', False)
         options.add_argument("--disable-blink-features=AutomationControlled")
-        options.add_argument("user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
         
-        driver_service = Service(ChromeDriverManager().install())
-        self.browser = webdriver.Chrome(service=driver_service, options=options)
+        try:
+            # Use system Chrome driver
+            self.browser = webdriver.Chrome(options=options)
+            print("Browser initialized successfully")
+        except Exception as e:
+            print(f"Error initializing browser: {e}")
+            raise
         
     def perform_search(self, query_text):
         """Execute search query on Google"""
-        self.browser.get('https://www.google.com')
-        time.sleep(2)
-        
-        # Locate and interact with search input field
-        input_field = WebDriverWait(self.browser, self.wait_time).until(
-            EC.presence_of_element_located((By.NAME, 'q'))
-        )
-        input_field.clear()
-        input_field.send_keys(query_text)
-        input_field.submit()
-        
-        # Wait until results appear
-        WebDriverWait(self.browser, self.wait_time).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, 'div.g'))
-        )
+        try:
+            print("Navigating to Google...")
+            self.browser.get('https://www.google.com')
+            time.sleep(3)
+            
+            print("Searching for query...")
+            # Locate and interact with search input field
+            input_field = WebDriverWait(self.browser, self.wait_time).until(
+                EC.presence_of_element_located((By.NAME, 'q'))
+            )
+            input_field.clear()
+            input_field.send_keys(query_text)
+            input_field.submit()
+            
+            print("Waiting for results...")
+            # Wait until results appear
+            WebDriverWait(self.browser, self.wait_time).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, 'div.g'))
+            )
+            print("Results loaded successfully")
+            
+        except Exception as e:
+            print(f"Error during search: {e}")
+            raise
         
     def extract_result_data(self, result_element):
         """Extract information from a single search result"""
